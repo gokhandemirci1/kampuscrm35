@@ -15,21 +15,43 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('username', email);
-      formData.append('password', password);
+      const params = new URLSearchParams();
+      params.append('username', email);
+      params.append('password', password);
 
-      const response = await api.post('/login', formData, {
+      const response = await api.post('/login', params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
 
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      navigate('/dashboard');
+      console.log('Login successful:', response.data);
+      
+      if (response.data.access_token && response.data.user) {
+        localStorage.setItem('token', response.data.access_token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        navigate('/dashboard');
+      } else {
+        setError('Geçersiz yanıt alındı');
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Giriş başarısız. Lütfen tekrar deneyin.');
+      console.error('Login error:', err);
+      console.error('Error response:', err.response);
+      
+      let errorMessage = 'Giriş başarısız. Lütfen tekrar deneyin.';
+      
+      if (err.response) {
+        // Backend'den gelen hata mesajı
+        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        // İstek gönderildi ama yanıt alınamadı
+        errorMessage = 'Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.';
+      } else {
+        // Başka bir hata
+        errorMessage = err.message || errorMessage;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
